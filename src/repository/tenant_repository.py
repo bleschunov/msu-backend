@@ -1,6 +1,7 @@
 from fastapi import HTTPException
 
 from infra.supabase import supabase
+from dto.tenant_dto import TenantCreateDto, TenantDto
 from util.logger import log
 
 
@@ -23,7 +24,6 @@ class TenantRepository:
             .eq("user_id", user_id)\
             .eq("is_last", True)\
             .execute()
-
         if len(response.data) == 0:
             raise HTTPException(
                 status_code=404,
@@ -34,8 +34,40 @@ class TenantRepository:
 
     @classmethod
     def get_modes_by_tenant_id(cls, tenant_id: int) -> list[str]:
-        (_, modes), _ = supabase.table("mode_tenant").select("mode(*)").eq("tenant_id", tenant_id).execute()
+        (_, modes), _ = supabase.table("mode_tenant").select(
+            "mode(*)").eq("tenant_id", tenant_id).execute()
         return [entry["mode"]["name"] for entry in modes]
+
+    @classmethod
+    def create_tenant(cls, body: TenantCreateDto) -> TenantDto:
+        response = supabase\
+            .table("tenant")\
+            .insert(body.model_dump())\
+            .execute()
+        tenant = response.data[0]
+        return TenantDto(**tenant)
+
+    @classmethod
+    def assign_user_id_to_tenant(cls, user_id: str, tenant_id: int):
+        supabase\
+            .table("user_tenant")\
+            .insert({
+                "user_id": user_id,
+                "tenant_id": tenant_id,
+                "is_last": True,
+            })\
+            .execute()
+
+    @classmethod
+    def assign_mode_to_tenant(cls, tenant_id: int):
+        supabase\
+            .table("mode_tenant")\
+            .insert({
+                "mode_id": 1,
+                "tenant_id": tenant_id
+            })\
+            .execute()
+
 
 
 tenant_repository = TenantRepository()

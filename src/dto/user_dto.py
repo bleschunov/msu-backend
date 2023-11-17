@@ -9,3 +9,8 @@ class UserDto(BaseModel):
     tenant_id: int
     available_modes: list[str]
     database_prediction_config: DatabasePredictionConfigDto | None
+
+
+class UserForTenantDto(BaseModel):
+    user_id: str
+    email: str
